@@ -1,25 +1,22 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-
+const {registerValidation,loginValidation} = require("../validation/auth");
 const CreateAuth = async (req, res) => {
-    try {
+ 
         const { username, email, password } = req.body;
-        const existing = await User.findOne({ email })
+     
         const ip = req.headers['x-forwarded-for']?.split(',')[0]
         || req.headers['cf-connecting-ip']
         || req.socket.remoteAddress;
+      try {
+          //validation
+          const validate = registerValidation(req.body);//validating the body
 
+//if validation failed we show a detailed error message 
+if(!validate.success) return res.status(400).json({ errors: validate.error.issues[0].message });
+   const existing = await User.findOne({ email })
         if(existing) {
             return res.status(400).json({ message: "Email already exists."})
-        }
-        if(!username || !email || !password) {
-            return res.status(400).json({ message: "All fields are required."})
-        }
-        if(password.length < 10) {
-            return res.status(400).json({ message: "Password length must be 10+."})
-        }
-        if(email.length < 11) {
-            return res.status(400).json({ message: "Please submit your real E-Mail address."})
         }
         const hashed = await bcrypt.hash(password, 10)
 
@@ -40,11 +37,12 @@ const CreateAuth = async (req, res) => {
 const Login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        if(!email || !password) {
-            return res.status(400).json({ message: "All fields are required."})
-        }
+
+        const validate = loginValidation(req.body);
+        if (!validate.success) return res.status(400).json({ errors: validate.error.issues[0].message });
+
         const user = await User.findOne({ email })
-        if(!user) return res.status(400).json({ message: "Invalid credentials" })
+        if(!user) return res.status(400).json({ message: "Signup first" })
         const match = await bcrypt.compare(password, user.password)
         if(!match) return res.status(400).json({ message: "Invalid credentials "})
         

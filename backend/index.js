@@ -1,10 +1,11 @@
 const express = require("express")
 const cors = require("cors")
 const db = require("./config/db")
+const mongo = require("mongoose")
 const app = express()
 const session = require("express-session")
-const { MongoStore } = require("connect-mongo")
-
+const {MongoStore} = require("connect-mongo")
+const authRouter = require("./root/auth")
 require("dotenv").config()
 
 app.use(cors({
@@ -14,13 +15,13 @@ app.use(cors({
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-
-const store = new MongoStore({
+app.use(authRouter)
+const store = MongoStore.create({
     mongoUrl: process.env.MONGO_URL,
-    collectionName: "sessions",
-    crypto: {
-        secret: process.env.MONGO_CRYPTO_SECRET
-    }
+  //  collectionName: "sessions",
+    //crypto: {
+      //  secret: process.env.MONGO_CRYPTO_SECRET
+    //}
 })
 
 app.use(session({
@@ -37,7 +38,6 @@ app.use(session({
 }))
 
 db()
-
 const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port: ${PORT}`)
